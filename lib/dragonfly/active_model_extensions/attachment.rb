@@ -158,7 +158,7 @@ module Dragonfly
       end
       
       def inspect
-        "<Dragonfly Attachment uid=#{uid.inspect}, app=#{app.inspect}>"
+        "<Dragonfly Attachment uid=#{uid.inspect}, app=#{app.name.inspect}>"
       end
 
       protected
@@ -182,7 +182,7 @@ module Dragonfly
 
       def destroy_content(uid)
         app.datastore.destroy(uid)
-      rescue DataStorage::DataNotFound => e
+      rescue DataStorage::DataNotFound, DataStorage::DestroyError => e
         app.log.warn("*** WARNING ***: tried to destroy data with uid #{uid}, but got error: #{e}")
       end
 

@@ -15,6 +15,7 @@ module Dragonfly
       configurable_attr :use_filesystem, true
       configurable_attr :storage_headers, {'x-amz-acl' => 'public-read'}
       configurable_attr :url_scheme, 'http'
+      configurable_attr :url_host
 
       REGIONS = {
         'us-east-1' => 's3.amazonaws.com',  #default
@@ -71,6 +72,8 @@ module Dragonfly
         rescuing_socket_errors{ storage.delete_object(bucket_name, uid) }
       rescue Excon::Errors::NotFound => e
         raise DataNotFound, "#{e} - #{uid}"
+      rescue Excon::Errors::Conflict => e
+        raise DestroyError, "#{e} - #{uid}"
       end
 
       def url_for(uid, opts={})
@@ -82,7 +85,8 @@ module Dragonfly
           end
         else
           scheme = opts[:scheme] || url_scheme
-          "#{scheme}://#{bucket_name}.s3.amazonaws.com/#{uid}"
+          host   = opts[:host]   || url_host || "#{bucket_name}.s3.amazonaws.com"
+          "#{scheme}://#{host}/#{uid}"
         end
       end
 
@@ -91,12 +95,16 @@ module Dragonfly
       end
 
       def storage
-        @storage ||= Fog::Storage.new(
-          :provider => 'AWS',
-          :aws_access_key_id => access_key_id,
-          :aws_secret_access_key => secret_access_key,
-          :region => region
-        )
+        @storage ||= begin
+          storage = Fog::Storage.new(
+            :provider => 'AWS',
+            :aws_access_key_id => access_key_id,
+            :aws_secret_access_key => secret_access_key,
+            :region => region
+          )
+          storage.sync_clock
+          storage
+        end
       end
 
       def bucket_exists?

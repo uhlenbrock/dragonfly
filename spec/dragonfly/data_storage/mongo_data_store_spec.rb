@@ -16,6 +16,15 @@ describe Dragonfly::DataStorage::MongoDataStore do
 
   it_should_behave_like 'data_store'
 
+  describe "connecting to a replica set" do
+    it "should initiate a replica set connection if hosts is set" do
+      @data_store.hosts = ['1.2.3.4:27017', '1.2.3.4:27017']
+      @data_store.connection_opts = {:name => 'testingset'}
+      Mongo::ReplSetConnection.should_receive(:new).with(['1.2.3.4:27017', '1.2.3.4:27017'], :name => 'testingset')
+      @data_store.connection
+    end
+  end
+  
   describe "authenticating" do
     before(:each) do
       @temp_object = Dragonfly::TempObject.new('Feijão verde')

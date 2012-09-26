@@ -261,6 +261,16 @@ describe Dragonfly::DataStorage::S3DataStore do
       @data_store.url_scheme = 'https'
       @data_store.url_for(@uid).should == "https://#{BUCKET_NAME}.s3.amazonaws.com/some/path/on/s3"
     end
+
+    it "should allow for customizing the host" do
+      @data_store.url_for(@uid, :host => 'customised.domain.com/and/path').should == "http://customised.domain.com/and/path/some/path/on/s3"
+    end
+
+    it "should allow the url_host to be customised permanently" do
+      url_host = 'customised.domain.com/and/path'
+      @data_store.url_host = url_host
+      @data_store.url_for(@uid).should == "http://#{url_host}/some/path/on/s3"
+    end
     
   end
 

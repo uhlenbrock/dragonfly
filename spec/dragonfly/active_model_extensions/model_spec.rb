@@ -49,18 +49,37 @@ describe Item do
       end
     end
 
-    it "should work for included modules (e.g. Mongoid::Document)" do
-      mongoid_document = Module.new
-      app1.define_macro_on_include(mongoid_document, :dog_accessor)
-      model_class = Class.new do
-        def self.before_save(*args); end
-        def self.before_destroy(*args); end
-        include mongoid_document
-        dog_accessor :doogie
+    describe "included modules (e.g. Mongoid::Document)" do
+      
+      it "should work" do
+        mongoid_document = Module.new
+        app1.define_macro_on_include(mongoid_document, :dog_accessor)
+        model_class = Class.new do
+          def self.before_save(*args); end
+          def self.before_destroy(*args); end
+          include mongoid_document
+          dog_accessor :doogie
+        end
+        klass = model_class.dragonfly_attachment_classes.first
+        klass.app.should == app1
+        klass.attribute.should == :doogie
       end
-      klass = model_class.dragonfly_attachment_classes.first
-      klass.app.should == app1
-      klass.attribute.should == :doogie
+
+      it "should work with two apps" do
+        mongoid_document = Module.new
+        app1.define_macro_on_include(mongoid_document, :image_accessor)
+        app2.define_macro_on_include(mongoid_document, :video_accessor)
+        model_class = Class.new do
+          def self.before_save(*args); end
+          def self.before_destroy(*args); end
+          include mongoid_document
+          image_accessor :doogie
+          video_accessor :boogie
+        end
+        model_class.dragonfly_attachment_classes[0].app.should == app1
+        model_class.dragonfly_attachment_classes[1].app.should == app2
+      end
+
     end
 
   end
@@ -288,9 +307,15 @@ describe Item do
         
       end
 
-      describe "when the data can't be found" do
+      describe "destroy errors" do
         it "should log a warning if the data wasn't found on destroy" do
           @app.datastore.should_receive(:destroy).with('some_uid').and_raise(Dragonfly::DataStorage::DataNotFound)
+          @app.log.should_receive(:warn)
+          @item.destroy
+        end
+
+        it "should log a warning if the data wasn't found on destroy" do
+          @app.datastore.should_receive(:destroy).with('some_uid').and_raise(Dragonfly::DataStorage::DestroyError)
           @app.log.should_receive(:warn)
           @item.destroy
         end
@@ -1446,7 +1471,7 @@ describe Item do
       @item.save!
     end
     it "should be awesome" do
-      @item.preview_image.inspect.should =~ %r{^<Dragonfly Attachment uid="[^"]+".*>$}
+      @item.preview_image.inspect.should =~ %r{^<Dragonfly Attachment uid="[^"]+", app=:test[_\w]*>$}
     end
   end
   

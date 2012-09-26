@@ -10,7 +10,8 @@ module Dragonfly
       private :new # Hide 'new' - need to use 'instance'
 
       def instance(name)
-        apps[name] ||= new
+        name = name.to_sym
+        apps[name] ||= new(name)
       end
 
       alias [] instance
@@ -23,7 +24,8 @@ module Dragonfly
 
     end
 
-    def initialize
+    def initialize(name)
+      @name = name
       @analyser, @processor, @encoder, @generator = Analyser.new, Processor.new, Encoder.new, Generator.new
       [@analyser, @processor, @encoder, @generator].each do |obj|
         obj.use_same_log_as(self)
@@ -32,6 +34,8 @@ module Dragonfly
       @server = Server.new(self)
       @job_definitions = JobDefinitions.new
     end
+
+    attr_reader :name
 
     include Configurable
 
@@ -135,13 +139,14 @@ module Dragonfly
 
     def define_macro_on_include(mod, macro_name)
       app = self
+      name = self.name
       (class << mod; self; end).class_eval do
-        alias included_without_dragonfly included
-        define_method :included_with_dragonfly do |mod|
-          included_without_dragonfly(mod)
+        alias_method "included_without_dragonfly_#{name}_#{macro_name}", :included
+        define_method "included_with_dragonfly_#{name}_#{macro_name}" do |mod|
+          send "included_without_dragonfly_#{name}_#{macro_name}", mod
           app.define_macro(mod, macro_name)
         end
-        alias included included_with_dragonfly
+        alias_method :included, "included_with_dragonfly_#{name}_#{macro_name}"
       end
     end
     
@@ -160,6 +165,10 @@ module Dragonfly
     
     def job_methods
       job_definitions.definition_names
+    end
+    
+    def inspect
+      "<#{self.class.name} name=#{name.inspect} >"
     end
     
     # Deprecated methods

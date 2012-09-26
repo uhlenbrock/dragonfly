@@ -10,10 +10,12 @@ group :development, :test, :cucumber do
   gem 'database_cleaner'
   gem 'jeweler', '~> 1.5.2'
   gem 'fog'
+  gem 'github-markup'
   gem 'mongo'
   gem 'couchrest', '~> 1.0'
   gem 'rack-cache'
   gem 'rails', '~>3.1.0', :require => nil
+  gem 'redcarpet', '~>1.0'
   gem 'rspec', '~> 2.5'
   gem 'webmock'
   gem 'yard'
@@ -23,7 +25,7 @@ group :development, :test, :cucumber do
     gem "jruby-openssl"
   else
     gem 'bluecloth'
-    gem 'bson_ext', '~>1.3.1'
+    gem 'bson_ext'
     gem 'sqlite3-ruby'
   end
 end
